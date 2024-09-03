@@ -11,6 +11,7 @@ public class ConvertApiService(ILogger<ConvertApiService> logger, ConvertApi con
     {
         try
         {
+            //TODO: Implement cancellation token
             var response = await _convertApi.ConvertAsync("docx", "pdf", new ConvertApiFileParam(docxStream, ".docx"));
             if (response.Files.Length == 0)
             {

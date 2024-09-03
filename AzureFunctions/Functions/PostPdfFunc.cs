@@ -5,10 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 
 namespace AzureFunctions.Functions;
-public class PostPdfFunc(ConvertApiService convertApiService, BlobService blobService)
+public class PostPdfFunc(ConvertApiService convertApiService, FileService fileService)
 {
     private readonly ConvertApiService _convertApiService = convertApiService;
-    private readonly BlobService _blobService = blobService;
+    private readonly FileService _fileService = fileService;
 
     [Function("post-pdf")]
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
@@ -22,14 +22,14 @@ public class PostPdfFunc(ConvertApiService convertApiService, BlobService blobSe
         var model = modelResult.Value;
         var pdfFileName = $"{model.FileName}.pdf";
 
-        var blobResult = await _blobService.DownloadBlobAsync(pdfFileName, model.DataHash);
-        if (blobResult.IsFailure)
+        var fileResult = await _fileService.DownloadAsync(pdfFileName, model.DataHash);
+        if (fileResult.IsFailure)
         {
-            return blobResult.ToInternalServerError();
+            return fileResult.ToInternalServerError();
         }
-        else if (blobResult.Value != null)
+        else if (fileResult.Value != null)
         {
-            return blobResult!.ToPdfResult(pdfFileName);
+            return fileResult!.ToPdfResult(pdfFileName);
         }
 
         var pdfStreamResult = await _convertApiService.ConvertDocxToPdfAsync(model.Stream);
@@ -39,7 +39,7 @@ public class PostPdfFunc(ConvertApiService convertApiService, BlobService blobSe
         }
 
         var pdfStream = pdfStreamResult.Value;
-        var uploadResult = await _blobService.UploadBlobAsync(pdfFileName, model.DataHash, pdfStream);
+        var uploadResult = await _fileService.UploadAsync(pdfFileName, model.DataHash, pdfStream);
         if (uploadResult.IsFailure)
         {
             return uploadResult.ToInternalServerError();

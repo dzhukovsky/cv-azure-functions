@@ -5,10 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 
 namespace AzureFunctions.Functions;
-public class GetPdfFunc(ConvertApiService convertApiService, BlobService blobService)
+public class GetPdfFunc(FileService fileService)
 {
-    private readonly ConvertApiService _convertApiService = convertApiService;
-    private readonly BlobService _blobService = blobService;
+    private readonly FileService _fileService = fileService;
 
     [Function("get-pdf")]
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req)
@@ -22,14 +21,14 @@ public class GetPdfFunc(ConvertApiService convertApiService, BlobService blobSer
         var model = modelResult.Value;
         var pdfFileName = $"{model.FileName}.pdf";
 
-        var blobResult = await _blobService.DownloadBlobAsync(pdfFileName, model.DataHash);
-        if (blobResult.IsFailure)
+        var fileResult = await _fileService.DownloadAsync(pdfFileName, model.DataHash);
+        if (fileResult.IsFailure)
         {
-            return blobResult.ToInternalServerError();
+            return fileResult.ToInternalServerError();
         }
-        else if (blobResult.Value != null)
+        else if (fileResult.Value != null)
         {
-            return blobResult!.ToPdfResult(pdfFileName);
+            return fileResult!.ToPdfResult(pdfFileName);
         }
 
         return new NotFoundResult();
